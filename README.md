@@ -5,6 +5,12 @@ A minimal set of functions for transforming lists
 ```php
 <?php
 
+use function List\filter;
+use function List\map;
+use function List\sort_list;
+use function List\take;
+use function List\unique;
+
 $transactions = [
     ['id' => 1, 'user' => 'Alice', 'amount' => 600, 'cat' => 'Tech'],
     ['id' => 2, 'user' => 'Bob', 'amount' => 150, 'cat' => 'Tech'],
@@ -32,6 +38,12 @@ Array
 )
 */
 
+```
+
+## Install
+
+```bash
+$ composer require list/list
 ```
 
 ## License
