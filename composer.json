@@ -1,0 +1,41 @@
+{
+    "name": "list/list",
+    "description": "A minimal set of functions for transforming lists",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "List\\": "src/"
+        },
+        "files": [
+            "src/list.php"
+        ]
+    },
+    "authors": [
+        {
+            "name": "Christopher Kaster",
+            "email": "me@atomicptr.de"
+        }
+    ],
+    "require": {
+        "php": ">=8.3"
+    },
+    "require-dev": {
+        "phpstan/phpstan": "^2.1",
+        "pestphp/pest": "^4.3"
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "scripts": {
+        "test": "php vendor/bin/pest",
+        "coverage": "XDEBUG_MODE=coverage php vendor/bin/pest --coverage"
+    },
+    "scripts-aliases": {
+        "test": [
+            "pest"
+        ]
+    }
+}
