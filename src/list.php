@@ -400,7 +400,7 @@ function sort_unique(callable $fn): Closure
 
         $result = [];
 
-        foreach ($list as $current) {
+        foreach ($copy as $current) {
             if (empty($result) || $fn(end($result), $current) !== 0) {
                 $result[] = $current;
             }
