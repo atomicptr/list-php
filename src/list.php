@@ -2,8 +2,11 @@
 
 namespace List;
 
+use Closure;
+use InvalidArgumentException;
+
 /**
- * Applies the function $fn to every element of $list and builds a new
+ * Applies the function $fn to every element of the passed in list and builds a new
  * list with the results returned by $fn.
  *
  * Same as array_map
@@ -11,28 +14,36 @@ namespace List;
  * @template T
  * @template U
  * @param callable(T $elem, int $index): U $fn
- * @param list<T> $list
- * @return list<U>
+ * @return (Closure(list<T>): list<U>)
  */
-function map(callable $fn, array $list): array
+function map(callable $fn): Closure
 {
-    return array_map($fn, $list, array_keys($list));
+    /** @param list<T> $list */
+    return fn(array $list) => array_map(
+        fn($item, $key) => $fn($item, $key),
+        $list,
+        array_keys($list),
+    );
 }
 
 /**
- * Applies the function $fn to every element of $list and builds a new
- * list with the elements of $list where $fn returned true.
+ * Applies the function $fn to every element of the passed in list and builds a new
+ * list with the elements of the list where $fn returned true.
  *
  * Same as array_filter
  *
  * @template T
  * @param callable(T $elem, int $index): bool $fn
- * @param list<T> $list
- * @return list<T>
+ * @return (Closure(list<T>): list<T>)
  */
-function filter(callable $fn, array $list): array
+function filter(callable $fn): Closure
 {
-    return array_values(array_filter($list, $fn, ARRAY_FILTER_USE_BOTH));
+    /** @param list<T> $list */
+    return fn(array $list) => array_values(array_filter(
+        $list,
+        fn($item, $key) => $fn($item, $key),
+        ARRAY_FILTER_USE_BOTH,
+    ));
 }
 
 /**
@@ -40,21 +51,25 @@ function filter(callable $fn, array $list): array
  *
  * @template T
  * @param callable(T $value, int $key): bool $fn
- * @param list<T> $list
- * @return array{0: list<T>, 1: list<T>} [matches, nonMatches]
+ * @return (Closure(list<T>): array{0: list<T>, 1: list<T>})
  */
-function partition(callable $fn, array $list): array
+function partition(callable $fn): Closure
 {
-    $matches = [];
-    $nonMatches = [];
-    foreach ($list as $key => $value) {
-        if ($fn($value, $key)) {
-            $matches[] = $value;
-        } else {
-            $nonMatches[] = $value;
+    /** @param list<T> $list */
+    return function (array $list) use ($fn) {
+        $matches = [];
+        $nonMatches = [];
+
+        foreach ($list as $key => $value) {
+            if ($fn($value, $key)) {
+                $matches[] = $value;
+            } else {
+                $nonMatches[] = $value;
+            }
         }
-    }
-    return [$matches, $nonMatches];
+
+        return [$matches, $nonMatches];
+    };
 }
 
 /**
@@ -62,18 +77,20 @@ function partition(callable $fn, array $list): array
  *
  * @template T
  * @param callable(T $elem, int $index): bool $fn
- * @param list<T> $list
- * @return T|null
+ * @return (Closure(list<T>): (T|null))
  */
-function find(callable $fn, array $list): mixed
+function find(callable $fn): Closure
 {
-    foreach ($list as $key => $value) {
-        if ($fn($value, $key)) {
-            return $value;
+    /** @param list<T> $list */
+    return function (array $list) use ($fn) {
+        foreach ($list as $key => $value) {
+            if ($fn($value, $key)) {
+                return $value;
+            }
         }
-    }
 
-    return null;
+        return null;
+    };
 }
 
 /**
@@ -81,32 +98,37 @@ function find(callable $fn, array $list): mixed
  *
  * @template T
  * @param callable(T $elem, int $index): bool $fn
- * @param list<T> $list
- * @return int|null
+ * @return (Closure(list<T>): (int|null))
  */
-function find_index(callable $fn, array $list): mixed
+function find_index(callable $fn): Closure
 {
-    foreach ($list as $key => $value) {
-        if ($fn($value, $key)) {
-            return $key;
+    /** @param list<T> $list */
+    return function (array $list) use ($fn) {
+        foreach (array_values($list) as $key => $value) {
+            if ($fn($value, $key)) {
+                return $key;
+            }
         }
-    }
-    return null;
+
+        return null;
+    };
 }
 
 /**
- * Applies the function $fn to every element of $list.
+ * Applies the function $fn to every element of the passed list.
  *
  * @template T
  * @param callable(T $elem, int $index): void $fn
- * @param list<T> $list
- * @return void
+ * @return (Closure(list<T>): void)
  */
-function for_all(callable $fn, array $list): void
+function for_all(callable $fn): Closure
 {
-    foreach ($list as $key => $value) {
-        $fn($value, $key);
-    }
+    /** @param list<T> $list */
+    return function (array $list) use ($fn) {
+        foreach ($list as $key => $value) {
+            $fn($value, $key);
+        }
+    };
 }
 
 /**
@@ -115,13 +137,17 @@ function for_all(callable $fn, array $list): void
  * @template T
  * @template R
  * @param callable(R $acc, T $curr): R $fn
- * @param list<T> $list
  * @param R $initial
- * @return R
+ * @return (Closure(list<T>): R)
  */
-function foldl(callable $fn, array $list, mixed $initial = null): mixed
+function fold_left(callable $fn, mixed $initial = null): Closure
 {
-    return array_reduce($list, $fn, $initial);
+    /** @param list<T> $list */
+    return fn(array $list) => array_reduce(
+        $list,
+        fn(mixed $acc, mixed $curr) => $fn($acc, $curr),
+        $initial,
+    );
 }
 
 /**
@@ -130,13 +156,17 @@ function foldl(callable $fn, array $list, mixed $initial = null): mixed
  * @template T
  * @template R
  * @param callable(T $curr, R $acc): R $fn
- * @param list<T> $list
  * @param R $initial
- * @return R
+ * @return (Closure(list<T>): R)
  */
-function foldr(callable $fn, array $list, mixed $initial = null): mixed
+function fold_right(callable $fn, mixed $initial = null): Closure
 {
-    return array_reduce(array_reverse($list), fn(mixed $acc, mixed $curr) => $fn($curr, $acc), $initial);
+    /** @param list<T> $list */
+    return fn(array $list) => array_reduce(
+        array_reverse($list),
+        fn(mixed $acc, mixed $curr) => $fn($curr, $acc),
+        $initial,
+    );
 }
 
 /**
@@ -144,16 +174,20 @@ function foldr(callable $fn, array $list, mixed $initial = null): mixed
  *
  * @template T
  * @param callable(T $elem, int $index): bool $fn
- * @param list<T> $list
- * @return bool
+ * @return (Closure(list<T>): bool)
  */
-function some(callable $fn, array $list): bool
+function some(callable $fn): Closure
 {
-    foreach ($list as $key => $value) {
-        if ($fn($value, $key))
-            return true;
-    }
-    return false;
+    /** @param list<T> $list */
+    return function (array $list) use ($fn) {
+        foreach (array_values($list) as $key => $value) {
+            if ($fn($value, $key)) {
+                return true;
+            }
+        }
+
+        return false;
+    };
 }
 
 /**
@@ -161,134 +195,166 @@ function some(callable $fn, array $list): bool
  *
  * @template T
  * @param callable(T $elem, int $index): bool $fn
- * @param list<T> $list
- * @return bool
+ * @return (Closure(list<T>): bool)
  */
-function every(callable $fn, array $list): bool
+function every(callable $fn): Closure
 {
-    foreach ($list as $key => $value) {
-        if (!$fn($value, $key))
-            return false;
-    }
-    return true;
+    /** @param list<T> $list */
+    return function (array $list) use ($fn) {
+        foreach ($list as $key => $value) {
+            if (!$fn($value, $key)) {
+                return false;
+            }
+        }
+
+        return true;
+    };
 }
 
 /**
  * Returns the number of elements in the list.
- *
- * @template T
- * @param list<T> $list
- * @return int
  */
-function length(array $list): int
+function length(): Closure
 {
-    return count($list);
+    /**
+     * @template T
+     * @param list<T> $list
+     * @return int
+     */
+    return fn(array $list) => count($list);
 }
 
 /**
  * Is the list empty?
- *
- * @template T
- * @param list<T> $list
- * @return bool
  */
-function isEmpty(array $list): bool
+function isEmpty(): Closure
 {
-    return count($list) === 0;
+    /**
+     * @template T
+     * @param list<T> $list
+     * @return int
+     */
+    return fn(array $list) => count($list) === 0;
 }
 
 /**
  * Returns the first element of the list.
- *
- * @template T
- * @param list<T> $list
- * @return T
  */
-function hd(array $list): mixed
+function head(): Closure
 {
-    if (empty($list)) {
-        throw new \InvalidArgumentException('List is empty');
-    }
+    /**
+     * @template T
+     * @param list<T> $list
+     * @return T
+     * @throws InvalidArgumentException
+     */
+    return function (array $list) {
+        if (empty($list)) {
+            throw new InvalidArgumentException('List is empty');
+        }
 
-    return $list[0];
+        return $list[0];
+    };
 }
 
 /**
  * Returns a new list containing all elements except the first.
- *
- * @template T
- * @param list<T> $list
- * @return list<T>
  */
-function tl(array $list): array
+function tail(): Closure
 {
-    return array_slice($list, 1);
+    /**
+     * @template T
+     * @param list<T> $list
+     * @return list<T>
+     */
+    return fn(array $list) => array_slice($list, 1);
 }
 
 /**
  * Retrieves the element at the specified index in the list.
  *
- * @template T
- * @param list<T> $list The input list
  * @param int $index The index to retrieve
- * @return T The element at the specified index
- * @throws \AssertionError If the index is out of bounds
  */
-function nth(array $list, int $index): mixed
+function nth(int $index): Closure
 {
-    if (!array_key_exists($index, $list)) {
-        throw new \AssertionError("Index $index out of bounds");
-    }
+    /**
+     * @template T
+     * @param list<T> $list
+     * @return T
+     * @throws InvalidArgumentException If the index is out of bounds
+     */
+    return function (array $list) use ($index) {
+        if (!array_key_exists($index, $list)) {
+            throw new InvalidArgumentException("Index $index out of bounds");
+        }
 
-    return $list[$index];
+        return $list[$index];
+    };
+}
+
+/**
+ * Attempts to retrieve the element at the specified index.
+ */
+function try_nth(int $index): Closure
+{
+    /**
+     * @template T
+     * @param list<T> $list
+     * @return T
+     */
+    return fn(array $list) => $list[$index] ?? null;
 }
 
 /**
  * Retrieves the first element of the list.
- *
- * @template T
- * @param list<T> $list The input list
- * @return T
  */
-function first(array $list): mixed
+function first(): Closure
 {
-    return nth($list, 0);
+    /**
+     * @template T
+     * @param list<T> $list
+     * @return T
+     */
+    return fn(array $list) => nth(0)($list);
 }
 
 /**
  * Retrieves the second element of the list.
- *
- * @template T
- * @param list<T> $list The input list
- * @return T
  */
-function second(array $list): mixed
+function second(): Closure
 {
-    return nth($list, 1);
+    /**
+     * @template T
+     * @param list<T> $list
+     * @return T
+     */
+    return fn(array $list) => nth(1)($list);
 }
 
 /**
  * Retrieves the third element of the list.
- *
- * @template T
- * @param list<T> $list The input list
- * @return T
  */
-function third(array $list): mixed
+function third(): Closure
 {
-    return nth($list, 2);
+    /**
+     * @template T
+     * @param list<T> $list
+     * @return T
+     */
+    return fn(array $list) => nth(2)($list);
 }
 
 /**
  * Retrieves the last element of the list.
- *
- * @template T
- * @param list<T> $list The input list
- * @return T
  */
-function last(array $list): mixed
+function last(): Closure
 {
-    return nth($list, count($list) - 1);
+    /**
+     * @template T
+     * @param list<T> $list
+     * @return T
+     */
+    return fn(array $list) => nth(count($list) - 1)($list);
 }
 
 /**
@@ -297,29 +363,64 @@ function last(array $list): mixed
  *
  * @template T
  * @param callable(T $elem1, T $elem2): int $fn
- * @param list<T> $list
- * @return list<T>
+ * @return (Closure(list<T>): list<T>)
  */
-function sort_list(callable $fn, array $list): array
+function sort_list(callable $fn): Closure
 {
-    $copy = $list;
+    /** @param list<T> $list */
+    return function (array $list) use ($fn) {
+        /** @var list<T> */
+        $copy = array_values($list);
 
-    usort($copy, $fn);
+        usort($copy, $fn);
 
-    return $copy;
+        return $copy;
+    };
+}
+
+/**
+ * Sort a list in increasing order and remove duplicates using a comparison function.
+ *
+ * @template T
+ * @param callable(T $elem1, T $elem2): int $fn
+ * @return (Closure(list<T>): list<T>)
+ */
+function sort_unique(callable $fn): Closure
+{
+    /** @param list<T> $list */
+    return function (array $list) use ($fn) {
+        if (empty($list)) {
+            return [];
+        }
+
+        /** @var list<T> */
+        $copy = array_values($list);
+
+        usort($copy, $fn);
+
+        $result = [];
+
+        foreach ($list as $current) {
+            if (empty($result) || $fn(end($result), $current) !== 0) {
+                $result[] = $current;
+            }
+        }
+
+        return $result;
+    };
 }
 
 /**
  * Returns a new list containing the first $num elements of the input list.
- *
- * @template T
- * @param list<T> $list The input list
- * @param int $num The number of elements to take
- * @return list<T> A new list with up to $num elements
  */
-function take(array $list, int $num): array
+function take(int $num): Closure
 {
-    return array_slice($list, 0, $num);
+    /**
+     * @template T
+     * @param list<T> $list
+     * @return list<T>
+     */
+    return fn(array $list) => array_slice($list, 0, $num);
 }
 
 /**
@@ -327,92 +428,95 @@ function take(array $list, int $num): array
  *
  * @template T
  * @param callable(T $elem, int $index): bool $fn
- * @param list<T> $list
- * @return list<T>
+ * @return (Closure(list<T>): list<T>)
  */
-function take_while(callable $fn, array $list): array
+function take_while(callable $fn): Closure
 {
-    $result = [];
+    /** @param list<T> $list */
+    return function (array $list) use ($fn) {
+        $result = [];
 
-    foreach ($list as $key => $value) {
-        if (!$fn($value, $key)) {
-            break;
+        foreach ($list as $key => $value) {
+            if (!$fn($value, $key)) {
+                break;
+            }
+
+            $result[] = $value;
         }
-
-        $result[] = $value;
-    }
-    return $result;
+        return $result;
+    };
 }
 
 /**
  * Returns a new list with the first $num elements removed.
- *
- * @template T
- * @param list<T> $list
- * @param int $num
- * @return list<T>
  */
-function drop(array $list, int $num): array
+function drop(int $num): Closure
 {
-    return array_slice($list, $num);
+    /**
+     * @template T
+     * @param list<T> $list
+     * @return list<T>
+     */
+    return fn(array $list) => array_slice($list, $num);
 }
 
 /**
  * Returns a new list with elements dropped from the start until the
  * predicate function $fn returns false.
- *
- * @template T
- * @param callable(T $elem, int $index): bool $fn
- * @param list<T> $list
- * @return list<T>
  */
-function dropWhile(callable $fn, array $list): array
+function drop_while(callable $fn): Closure
 {
-    $dropped = false;
-    $result = [];
-    foreach ($list as $key => $value) {
-        if (!$dropped && !$fn($value, $key)) {
-            $dropped = true;
+    /** @param list<T> $list */
+    return function (array $list) use ($fn) {
+        $dropped = false;
+        $result = [];
+
+        foreach ($list as $key => $value) {
+            if (!$dropped && !$fn($value, $key)) {
+                $dropped = true;
+            }
+            if ($dropped) {
+                $result[] = $value;
+            }
         }
-        if ($dropped) {
-            $result[] = $value;
-        }
-    }
-    return $result;
+
+        return $result;
+    };
 }
 
 /**
  * Returns a portion of the list starting at $start with an optional length.
- *
- * @template T
- * @param list<T> $list
- * @param int $start
- * @param ?int $length
- * @return list<T>
  */
-function slice(array $list, int $start = 0, ?int $length = null): array
+function slice(int $start = 0, ?int $length = null): Closure
 {
-    return array_slice($list, $start, $length);
+    /**
+     * @template T
+     * @param list<T> $list
+     * @return list<T>
+     */
+    return fn(array $list) => array_slice($list, $start, $length);
 }
 
 /**
  * Removes duplicate values from a list.
- *
- * @template T
- * @param list<T> $list
- * @return list<T>
  */
-function unique(array $list): array
+function unique(): Closure
 {
-    $result = [];
+    /**
+     * @param list<T> $list
+     * @return (Closure(list<T>): list<T>)
+     */
+    return function (array $list) {
+        $result = [];
 
-    foreach ($list as $value) {
-        if (!in_array($value, $result, true)) {
-            $result[] = $value;
+        foreach ($list as $value) {
+            if (!in_array($value, $result, true)) {
+                $result[] = $value;
+            }
         }
-    }
 
-    return $result;
+        return $result;
+    };
 }
 
 /**
@@ -421,44 +525,34 @@ function unique(array $list): array
  * @template T
  * @template U
  * @param callable(T $elem, int $index): list<U> $fn
- * @param list<T> $list
- * @return list<U>
+ * @return (Closure(list<T>): list<U>)
  */
-function flat_map(callable $fn, array $list): array
+function flat_map(callable $fn): Closure
 {
-    $result = [];
-    foreach ($list as $key => $value) {
-        foreach ($fn($value, $key) as $inner) {
-            $result[] = $inner;
+    /** @param list<T> $list */
+    return function (array $list) use ($fn) {
+        $result = [];
+
+        foreach ($list as $key => $value) {
+            foreach ($fn($value, $key) as $inner) {
+                $result[] = $inner;
+            }
         }
-    }
 
-    return $result;
-}
-
-/**
- * Attempts to retrieve the element at the specified index.
- *
- * @template T
- * @param list<T> $list
- * @param int $index
- * @return T|null
- */
-function try_nth(array $list, int $index): mixed
-{
-    return $list[$index] ?? null;
+        return $result;
+    };
 }
 
 /**
  * Returns a new list with elements in reverse order.
- *
- * @template T
- * @param list<T> $list
- * @return list<T>
  */
-function rev(array $list): array
+function reverse(): Closure
 {
-    return array_reverse($list);
+    /**
+     * @param list<T> $list
+     * @return list<T>
+     */
+    return fn(array $list) => array_reverse($list);
 }
 
 /**
@@ -472,9 +566,11 @@ function rev(array $list): array
 function init(callable $fn, int $length): array
 {
     $list = [];
+
     for ($i = 0; $i < $length; $i++) {
         $list[] = $fn($i);
     }
+
     return $list;
 }
 
@@ -482,78 +578,62 @@ function init(callable $fn, int $length): array
  * Concatenates two lists.
  *
  * @template T
- * @template U
- * @param list<T> $list1
- * @param list<U> $list2
- * @return list<T|U>
+ * @param list<T> $otherList
  */
-function append(array $list1, array $list2): array
+function append(array $otherList): Closure
 {
-    return [...$list1, ...$list2];
+    /**
+     * @template U
+     * @param list<T> $list
+     * @return list<T|U>
+     */
+    return fn(array $list) => [...$list, ...$otherList];
 }
 
 /**
  * Add element to new list
  *
- * @template T
  * @template U
- * @param list<T> $list
  * @param U $value
- * @return list<T|U>
  */
-function cons(array $list, mixed $value): array
+function cons(mixed $value): Closure
 {
-    return append($list, [$value]);
+    /**
+     * @param list<T> $list
+     * @return list<T|U>
+     */
+    return fn(array $list) => [...$list, $value];
 }
 
 /**
  * Flattens a nested array structure.
- *
- * @param list<mixed> $list
- * @return list<mixed>
  */
-function flatten(array $list): array
+function flatten(): Closure
 {
-    $result = [];
+    /**
+     * @param list<mixed> $list
+     * @return list<mixed>
+     */
+    return function (array $list) {
+        $result = [];
 
-    foreach ($list as $elem) {
-        if (is_array($elem)) {
-            foreach (flatten(array_values($elem)) as $nested) {
-                $result[] = $nested;
+        foreach ($list as $elem) {
+            if (is_array($elem)) {
+                /** @var list<mixed> */
+                $arr = flatten()(array_values($elem));
+
+                foreach ($arr as $nested) {
+                    $result[] = $nested;
+                }
+
+                continue;
             }
-        } else {
+
             $result[] = $elem;
         }
-    }
 
-    return $result;
-}
-
-/**
- * Sort a list in increasing order and remove duplicates using a comparison function.
- *
- * @template T
- * @param callable(T $elem1, T $elem2): int $fn
- * @param list<T> $list
- * @return list<T>
- */
-function sort_unique(callable $fn, array $list): array
-{
-    if (empty($list)) {
-        return [];
-    }
-
-    usort($list, $fn);
-
-    $result = [];
-
-    foreach ($list as $current) {
-        if (empty($result) || $fn(end($result), $current) !== 0) {
-            $result[] = $current;
-        }
-    }
-
-    return $result;
+        return $result;
+    };
 }
 
 /**
@@ -562,15 +642,18 @@ function sort_unique(callable $fn, array $list): array
  * @template TKey of array-key
  * @template TValue
  * @param callable(TValue): TKey $fn
- * @param list<TValue> $list
- * @return array<TKey, list<TValue>>
+ * @return (Closure(list<TValue>): array<TKey, list<TValue>>)
  */
-function group_by(callable $fn, array $list): array
+function group_by(callable $fn): Closure
 {
-    $groups = [];
-    foreach ($list as $elem) {
-        $key = $fn($elem);
-        $groups[$key][] = $elem;
-    }
-    return $groups;
+    return function (array $list) use ($fn) {
+        $groups = [];
+
+        foreach ($list as $elem) {
+            $key = $fn($elem);
+            $groups[$key][] = $elem;
+        }
+
+        return $groups;
+    };
 }

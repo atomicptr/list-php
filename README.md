@@ -1,6 +1,6 @@
 # list
 
-A minimal set of functions for transforming lists
+A minimal set of functions for transforming lists using the PHP 8.5 pipe operator
 
 ```php
 <?php
@@ -21,12 +21,12 @@ $transactions = [
 ];
 
 $topTechUsers = $transactions
-    |> filter(fn($t) => $t['cat'] === 'Tech', ...)         // 1. Only Tech
-    |> filter(fn($t) => $t['amount'] > 500, ...)           // 2. High value only
-    |> map(fn($t) => $t['user'], ...)                      // 3. Just the names
-    |> unique(...)                                         // 4. No duplicates
-    |> sort_list(fn($a, $b) => strcmp($a, $b), ...)        // 5. Alphabetical
-    |> take(..., 2);                                       // 6. Top 2
+    |> filter(fn($t) => $t['cat'] === 'Tech')         // 1. Only Tech
+    |> filter(fn($t) => $t['amount'] > 500)           // 2. High value only
+    |> map(fn($t) => $t['user'])                      // 3. Just the names
+    |> unique()                                       // 4. No duplicates
+    |> sort_list(fn($a, $b) => strcmp($a, $b))        // 5. Alphabetical
+    |> take(2);                                       // 6. Top 2
 
 print_r($topTechUsers);
 
