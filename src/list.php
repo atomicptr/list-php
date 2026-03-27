@@ -14,11 +14,11 @@ use InvalidArgumentException;
  * @template T
  * @template U
  * @param callable(T $elem, int $index): U $fn
- * @return (Closure(list<T>): list<U>)
+ * @return (Closure(T[]): U[])
  */
 function map(callable $fn): Closure
 {
-    /** @param list<T> $list */
+    /** @param T[] $list */
     return fn(array $list) => array_map(
         fn($item, $key) => $fn($item, $key),
         $list,
@@ -34,11 +34,11 @@ function map(callable $fn): Closure
  *
  * @template T
  * @param callable(T $elem, int $index): bool $fn
- * @return (Closure(list<T>): list<T>)
+ * @return (Closure(T[]): T[])
  */
 function filter(callable $fn): Closure
 {
-    /** @param list<T> $list */
+    /** @param T[] $list */
     return fn(array $list) => array_values(array_filter(
         $list,
         fn($item, $key) => $fn($item, $key),
@@ -51,11 +51,11 @@ function filter(callable $fn): Closure
  *
  * @template T
  * @param callable(T $value, int $key): bool $fn
- * @return (Closure(list<T>): array{0: list<T>, 1: list<T>})
+ * @return (Closure(T[]): array{0: T[], 1: T[]})
  */
 function partition(callable $fn): Closure
 {
-    /** @param list<T> $list */
+    /** @param T[] $list */
     return function (array $list) use ($fn) {
         $matches = [];
         $nonMatches = [];
@@ -77,11 +77,11 @@ function partition(callable $fn): Closure
  *
  * @template T
  * @param callable(T $elem, int $index): bool $fn
- * @return (Closure(list<T>): (T|null))
+ * @return (Closure(T[]): (T|null))
  */
 function find(callable $fn): Closure
 {
-    /** @param list<T> $list */
+    /** @param T[] $list */
     return function (array $list) use ($fn) {
         foreach ($list as $key => $value) {
             if ($fn($value, $key)) {
@@ -98,11 +98,11 @@ function find(callable $fn): Closure
  *
  * @template T
  * @param callable(T $elem, int $index): bool $fn
- * @return (Closure(list<T>): (int|null))
+ * @return (Closure(T[]): (int|null))
  */
 function find_index(callable $fn): Closure
 {
-    /** @param list<T> $list */
+    /** @param T[] $list */
     return function (array $list) use ($fn) {
         foreach (array_values($list) as $key => $value) {
             if ($fn($value, $key)) {
@@ -119,11 +119,11 @@ function find_index(callable $fn): Closure
  *
  * @template T
  * @param callable(T $elem, int $index): void $fn
- * @return (Closure(list<T>): void)
+ * @return (Closure(T[]): void)
  */
 function for_all(callable $fn): Closure
 {
-    /** @param list<T> $list */
+    /** @param T[] $list */
     return function (array $list) use ($fn) {
         foreach ($list as $key => $value) {
             $fn($value, $key);
@@ -138,11 +138,11 @@ function for_all(callable $fn): Closure
  * @template R
  * @param callable(R $acc, T $curr): R $fn
  * @param R $initial
- * @return (Closure(list<T>): R)
+ * @return (Closure(T[]): R)
  */
 function fold_left(callable $fn, mixed $initial = null): Closure
 {
-    /** @param list<T> $list */
+    /** @param T[] $list */
     return fn(array $list) => array_reduce(
         $list,
         fn(mixed $acc, mixed $curr) => $fn($acc, $curr),
@@ -157,11 +157,11 @@ function fold_left(callable $fn, mixed $initial = null): Closure
  * @template R
  * @param callable(T $curr, R $acc): R $fn
  * @param R $initial
- * @return (Closure(list<T>): R)
+ * @return (Closure(T[]): R)
  */
 function fold_right(callable $fn, mixed $initial = null): Closure
 {
-    /** @param list<T> $list */
+    /** @param T[] $list */
     return fn(array $list) => array_reduce(
         array_reverse($list),
         fn(mixed $acc, mixed $curr) => $fn($curr, $acc),
@@ -174,11 +174,11 @@ function fold_right(callable $fn, mixed $initial = null): Closure
  *
  * @template T
  * @param callable(T $elem, int $index): bool $fn
- * @return (Closure(list<T>): bool)
+ * @return (Closure(T[]): bool)
  */
 function some(callable $fn): Closure
 {
-    /** @param list<T> $list */
+    /** @param T[] $list */
     return function (array $list) use ($fn) {
         foreach (array_values($list) as $key => $value) {
             if ($fn($value, $key)) {
@@ -195,11 +195,11 @@ function some(callable $fn): Closure
  *
  * @template T
  * @param callable(T $elem, int $index): bool $fn
- * @return (Closure(list<T>): bool)
+ * @return (Closure(T[]): bool)
  */
 function every(callable $fn): Closure
 {
-    /** @param list<T> $list */
+    /** @param T[] $list */
     return function (array $list) use ($fn) {
         foreach ($list as $key => $value) {
             if (!$fn($value, $key)) {
@@ -218,7 +218,7 @@ function length(): Closure
 {
     /**
      * @template T
-     * @param list<T> $list
+     * @param T[] $list
      * @return int
      */
     return fn(array $list) => count($list);
@@ -231,7 +231,7 @@ function isEmpty(): Closure
 {
     /**
      * @template T
-     * @param list<T> $list
+     * @param T[] $list
      * @return int
      */
     return fn(array $list) => count($list) === 0;
@@ -244,7 +244,7 @@ function head(): Closure
 {
     /**
      * @template T
-     * @param list<T> $list
+     * @param T[] $list
      * @return T
      * @throws InvalidArgumentException
      */
@@ -264,8 +264,8 @@ function tail(): Closure
 {
     /**
      * @template T
-     * @param list<T> $list
-     * @return list<T>
+     * @param T[] $list
+     * @return T[]
      */
     return fn(array $list) => array_slice($list, 1);
 }
@@ -279,7 +279,7 @@ function nth(int $index): Closure
 {
     /**
      * @template T
-     * @param list<T> $list
+     * @param T[] $list
      * @return T
      * @throws InvalidArgumentException If the index is out of bounds
      */
@@ -299,7 +299,7 @@ function try_nth(int $index): Closure
 {
     /**
      * @template T
-     * @param list<T> $list
+     * @param T[] $list
      * @return T
      */
     return fn(array $list) => $list[$index] ?? null;
@@ -312,7 +312,7 @@ function first(): Closure
 {
     /**
      * @template T
-     * @param list<T> $list
+     * @param T[] $list
      * @return T
      */
     return fn(array $list) => nth(0)($list);
@@ -325,7 +325,7 @@ function second(): Closure
 {
     /**
      * @template T
-     * @param list<T> $list
+     * @param T[] $list
      * @return T
      */
     return fn(array $list) => nth(1)($list);
@@ -338,7 +338,7 @@ function third(): Closure
 {
     /**
      * @template T
-     * @param list<T> $list
+     * @param T[] $list
      * @return T
      */
     return fn(array $list) => nth(2)($list);
@@ -351,7 +351,7 @@ function last(): Closure
 {
     /**
      * @template T
-     * @param list<T> $list
+     * @param T[] $list
      * @return T
      */
     return fn(array $list) => nth(count($list) - 1)($list);
@@ -363,13 +363,13 @@ function last(): Closure
  *
  * @template T
  * @param callable(T $elem1, T $elem2): int $fn
- * @return (Closure(list<T>): list<T>)
+ * @return (Closure(T[]): T[])
  */
 function sort_list(callable $fn): Closure
 {
-    /** @param list<T> $list */
+    /** @param T[] $list */
     return function (array $list) use ($fn) {
-        /** @var list<T> */
+        /** @var T[] */
         $copy = array_values($list);
 
         usort($copy, $fn);
@@ -383,17 +383,17 @@ function sort_list(callable $fn): Closure
  *
  * @template T
  * @param callable(T $elem1, T $elem2): int $fn
- * @return (Closure(list<T>): list<T>)
+ * @return (Closure(T[]): T[])
  */
 function sort_unique(callable $fn): Closure
 {
-    /** @param list<T> $list */
+    /** @param T[] $list */
     return function (array $list) use ($fn) {
         if (empty($list)) {
             return [];
         }
 
-        /** @var list<T> */
+        /** @var T[] */
         $copy = array_values($list);
 
         usort($copy, $fn);
@@ -417,8 +417,8 @@ function take(int $num): Closure
 {
     /**
      * @template T
-     * @param list<T> $list
-     * @return list<T>
+     * @param T[] $list
+     * @return T[]
      */
     return fn(array $list) => array_slice($list, 0, $num);
 }
@@ -428,11 +428,11 @@ function take(int $num): Closure
  *
  * @template T
  * @param callable(T $elem, int $index): bool $fn
- * @return (Closure(list<T>): list<T>)
+ * @return (Closure(T[]): T[])
  */
 function take_while(callable $fn): Closure
 {
-    /** @param list<T> $list */
+    /** @param T[] $list */
     return function (array $list) use ($fn) {
         $result = [];
 
@@ -454,8 +454,8 @@ function drop(int $num): Closure
 {
     /**
      * @template T
-     * @param list<T> $list
-     * @return list<T>
+     * @param T[] $list
+     * @return T[]
      */
     return fn(array $list) => array_slice($list, $num);
 }
@@ -466,7 +466,7 @@ function drop(int $num): Closure
  */
 function drop_while(callable $fn): Closure
 {
-    /** @param list<T> $list */
+    /** @param T[] $list */
     return function (array $list) use ($fn) {
         $dropped = false;
         $result = [];
@@ -491,8 +491,8 @@ function slice(int $start = 0, ?int $length = null): Closure
 {
     /**
      * @template T
-     * @param list<T> $list
-     * @return list<T>
+     * @param T[] $list
+     * @return T[]
      */
     return fn(array $list) => array_slice($list, $start, $length);
 }
@@ -503,8 +503,8 @@ function slice(int $start = 0, ?int $length = null): Closure
 function unique(): Closure
 {
     /**
-     * @param list<T> $list
-     * @return (Closure(list<T>): list<T>)
+     * @param T[] $list
+     * @return (Closure(T[]): T[])
      */
     return function (array $list) {
         $result = [];
@@ -524,12 +524,12 @@ function unique(): Closure
  *
  * @template T
  * @template U
- * @param callable(T $elem, int $index): list<U> $fn
- * @return (Closure(list<T>): list<U>)
+ * @param callable(T $elem, int $index): U[] $fn
+ * @return (Closure(T[]): U[])
  */
 function flat_map(callable $fn): Closure
 {
-    /** @param list<T> $list */
+    /** @param T[] $list */
     return function (array $list) use ($fn) {
         $result = [];
 
@@ -549,8 +549,8 @@ function flat_map(callable $fn): Closure
 function reverse(): Closure
 {
     /**
-     * @param list<T> $list
-     * @return list<T>
+     * @param T[] $list
+     * @return T[]
      */
     return fn(array $list) => array_reverse($list);
 }
@@ -561,7 +561,7 @@ function reverse(): Closure
  * @template T
  * @param callable(int $index): T $fn
  * @param int $length
- * @return list<T>
+ * @return T[]
  */
 function init(callable $fn, int $length): array
 {
@@ -578,14 +578,14 @@ function init(callable $fn, int $length): array
  * Concatenates two lists.
  *
  * @template T
- * @param list<T> $otherList
+ * @param T[] $otherList
  */
 function append(array $otherList): Closure
 {
     /**
      * @template U
-     * @param list<T> $list
-     * @return list<T|U>
+     * @param T[] $list
+     * @return (T|U)[]
      */
     return fn(array $list) => [...$list, ...$otherList];
 }
@@ -599,8 +599,8 @@ function append(array $otherList): Closure
 function cons(mixed $value): Closure
 {
     /**
-     * @param list<T> $list
-     * @return list<T|U>
+     * @param T[] $list
+     * @return (T|U)[]
      */
     return fn(array $list) => [...$list, $value];
 }
@@ -611,15 +611,15 @@ function cons(mixed $value): Closure
 function flatten(): Closure
 {
     /**
-     * @param list<mixed> $list
-     * @return list<mixed>
+     * @param mixed[] $list
+     * @return mixed[]
      */
     return function (array $list) {
         $result = [];
 
         foreach ($list as $elem) {
             if (is_array($elem)) {
-                /** @var list<mixed> */
+                /** @var mixed[] */
                 $arr = flatten()(array_values($elem));
 
                 foreach ($arr as $nested) {
@@ -642,7 +642,7 @@ function flatten(): Closure
  * @template TKey of array-key
  * @template TValue
  * @param callable(TValue): TKey $fn
- * @return (Closure(list<TValue>): array<TKey, list<TValue>>)
+ * @return (Closure(TValue[]): array<TKey, TValue[]>)
  */
 function group_by(callable $fn): Closure
 {
