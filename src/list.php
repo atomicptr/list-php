@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace List;
 
@@ -12,18 +14,21 @@ use InvalidArgumentException;
  * Same as array_map
  *
  * @template T
+ * @template TKey of array-key
  * @template U
- * @param callable(T $elem, int $index): U $fn
- * @return (Closure(T[]): (U[]))
+ * @param callable(T $elem, TKey $index): U $fn
+ * @return (Closure(array<TKey, T>): (U[]))
  */
 function map(callable $fn): Closure
 {
-    /** @param T[] $list */
-    return fn(array $list) => array_map(
-        fn($item, $key) => $fn($item, $key),
-        $list,
-        array_keys($list),
-    );
+    // Keep a closure body so PHPStan can retain the generic key type.
+    // @mago-expect lint:prefer-arrow-function
+    /** @param array<TKey, T> $list */
+    return function (array $list) use ($fn) {
+        // @mago-expect analysis:redundant-docblock-type
+        /** @var array<TKey, T> $list */
+        return array_map(fn($item, $key) => $fn($item, $key), $list, array_keys($list));
+    };
 }
 
 /**
@@ -33,33 +38,41 @@ function map(callable $fn): Closure
  * Same as array_filter
  *
  * @template T
- * @param callable(T $elem, int $index): bool $fn
- * @return (Closure(T[]): (T[]))
+ * @template TKey of array-key
+ * @param callable(T $elem, TKey $index): bool $fn
+ * @return (Closure(array<TKey, T>): (T[]))
  */
 function filter(callable $fn): Closure
 {
-    /** @param T[] $list */
-    return fn(array $list) => array_values(array_filter(
-        $list,
-        fn($item, $key) => $fn($item, $key),
-        ARRAY_FILTER_USE_BOTH,
-    ));
+    // Keep a closure body so PHPStan can retain the generic key type.
+    // @mago-expect lint:prefer-arrow-function
+    /** @param array<TKey, T> $list */
+    return function (array $list) use ($fn) {
+        // @mago-expect analysis:redundant-docblock-type
+        /** @var array<TKey, T> $list */
+        return array_values(array_filter($list, fn($item, $key) => $fn($item, $key), ARRAY_FILTER_USE_BOTH));
+    };
 }
 
 /**
  * Partitions the input list into two arrays based on the given predicate function.
  *
  * @template T
- * @param callable(T $value, int $key): bool $fn
- * @return (Closure(T[]): array{0: T[], 1: T[]})
+ * @template TKey of array-key
+ * @param callable(T $value, TKey $key): bool $fn
+ * @return (Closure(array<TKey, T>): array{0: T[], 1: T[]})
  */
 function partition(callable $fn): Closure
 {
-    /** @param T[] $list */
+    /** @param array<TKey, T> $list */
     return function (array $list) use ($fn) {
         $matches = [];
         $nonMatches = [];
 
+        /**
+         * @var T $value
+         * @var TKey $key
+         */
         foreach ($list as $key => $value) {
             if ($fn($value, $key)) {
                 $matches[] = $value;
@@ -76,13 +89,18 @@ function partition(callable $fn): Closure
  * Iterates over $list until one element applied to $fn returns true and returns that element.
  *
  * @template T
- * @param callable(T $elem, int $index): bool $fn
- * @return (Closure(T[]): (T|null))
+ * @template TKey of array-key
+ * @param callable(T $elem, TKey $index): bool $fn
+ * @return (Closure(array<TKey, T>): (T|null))
  */
 function find(callable $fn): Closure
 {
-    /** @param T[] $list */
+    /** @param array<TKey, T> $list */
     return function (array $list) use ($fn) {
+        /**
+         * @var T $value
+         * @var TKey $key
+         */
         foreach ($list as $key => $value) {
             if ($fn($value, $key)) {
                 return $value;
@@ -104,6 +122,7 @@ function find_index(callable $fn): Closure
 {
     /** @param T[] $list */
     return function (array $list) use ($fn) {
+        /** @var T $value */
         foreach (array_values($list) as $key => $value) {
             if ($fn($value, $key)) {
                 return $key;
@@ -118,13 +137,18 @@ function find_index(callable $fn): Closure
  * Applies the function $fn to every element of the passed list.
  *
  * @template T
- * @param callable(T $elem, int $index): void $fn
- * @return (Closure(T[]): void)
+ * @template TKey of array-key
+ * @param callable(T $elem, TKey $index): void $fn
+ * @return (Closure(array<TKey, T>): void)
  */
 function for_all(callable $fn): Closure
 {
-    /** @param T[] $list */
+    /** @param array<TKey, T> $list */
     return function (array $list) use ($fn) {
+        /**
+         * @var T $value
+         * @var TKey $key
+         */
         foreach ($list as $key => $value) {
             $fn($value, $key);
         }
@@ -143,11 +167,7 @@ function for_all(callable $fn): Closure
 function fold_left(callable $fn, mixed $initial = null): Closure
 {
     /** @param T[] $list */
-    return fn(array $list) => array_reduce(
-        $list,
-        fn(mixed $acc, mixed $curr) => $fn($acc, $curr),
-        $initial,
-    );
+    return fn(array $list) => array_reduce($list, fn(mixed $acc, mixed $curr) => $fn($acc, $curr), $initial);
 }
 
 /**
@@ -180,6 +200,7 @@ function some(callable $fn): Closure
 {
     /** @param T[] $list */
     return function (array $list) use ($fn) {
+        /** @var T $value */
         foreach (array_values($list) as $key => $value) {
             if ($fn($value, $key)) {
                 return true;
@@ -194,13 +215,18 @@ function some(callable $fn): Closure
  * Returns true if all elements in the list satisfy the predicate $fn.
  *
  * @template T
- * @param callable(T $elem, int $index): bool $fn
- * @return (Closure(T[]): bool)
+ * @template TKey of array-key
+ * @param callable(T $elem, TKey $index): bool $fn
+ * @return (Closure(array<TKey, T>): bool)
  */
 function every(callable $fn): Closure
 {
-    /** @param T[] $list */
+    /** @param array<TKey, T> $list */
     return function (array $list) use ($fn) {
+        /**
+         * @var T $value
+         * @var TKey $key
+         */
         foreach ($list as $key => $value) {
             if (!$fn($value, $key)) {
                 return false;
@@ -226,13 +252,15 @@ function length(): Closure
 
 /**
  * Is the list empty?
+ *
+ * @mago-expect lint:function-name
  */
 function isEmpty(): Closure
 {
     /**
      * @template T
      * @param T[] $list
-     * @return int
+     * @return bool
      */
     return fn(array $list) => count($list) === 0;
 }
@@ -249,7 +277,7 @@ function head(): Closure
      * @throws InvalidArgumentException
      */
     return function (array $list) {
-        if (empty($list)) {
+        if ($list === []) {
             throw new InvalidArgumentException('List is empty');
         }
 
@@ -285,7 +313,7 @@ function nth(int $index): Closure
      */
     return function (array $list) use ($index) {
         if (!array_key_exists($index, $list)) {
-            throw new InvalidArgumentException("Index $index out of bounds");
+            throw new InvalidArgumentException("Index {$index} out of bounds");
         }
 
         return $list[$index];
@@ -389,7 +417,7 @@ function sort_unique(callable $fn): Closure
 {
     /** @param T[] $list */
     return function (array $list) use ($fn) {
-        if (empty($list)) {
+        if ($list === []) {
             return [];
         }
 
@@ -401,9 +429,11 @@ function sort_unique(callable $fn): Closure
         $result = [];
 
         foreach ($copy as $current) {
-            if (empty($result) || $fn(end($result), $current) !== 0) {
-                $result[] = $current;
+            if ($result !== [] && $fn($result[array_key_last($result)], $current) === 0) {
+                continue;
             }
+
+            $result[] = $current;
         }
 
         return $result;
@@ -427,15 +457,20 @@ function take(int $num): Closure
  * Returns a new list containing elements from the start until the predicate returns false.
  *
  * @template T
- * @param callable(T $elem, int $index): bool $fn
- * @return (Closure(T[]): (T[]))
+ * @template TKey of array-key
+ * @param callable(T $elem, TKey $index): bool $fn
+ * @return (Closure(array<TKey, T>): (T[]))
  */
 function take_while(callable $fn): Closure
 {
-    /** @param T[] $list */
+    /** @param array<TKey, T> $list */
     return function (array $list) use ($fn) {
         $result = [];
 
+        /**
+         * @var T $value
+         * @var TKey $key
+         */
         foreach ($list as $key => $value) {
             if (!$fn($value, $key)) {
                 break;
@@ -463,14 +498,23 @@ function drop(int $num): Closure
 /**
  * Returns a new list with elements dropped from the start until the
  * predicate function $fn returns false.
+ *
+ * @template T
+ * @template TKey of array-key
+ * @param callable(T, TKey): bool $fn
+ * @return Closure(array<TKey, T>): (T[])
  */
 function drop_while(callable $fn): Closure
 {
-    /** @param T[] $list */
+    /** @param array<TKey, T> $list */
     return function (array $list) use ($fn) {
         $dropped = false;
         $result = [];
 
+        /**
+         * @var T $value
+         * @var TKey $key
+         */
         foreach ($list as $key => $value) {
             if (!$dropped && !$fn($value, $key)) {
                 $dropped = true;
@@ -503,16 +547,20 @@ function slice(int $start = 0, ?int $length = null): Closure
 function unique(): Closure
 {
     /**
+     * @template T
      * @param T[] $list
-     * @return (Closure(T[]): (T[]))
+     * @return T[]
      */
     return function (array $list) {
         $result = [];
 
+        /** @var mixed $value */
         foreach ($list as $value) {
-            if (!in_array($value, $result, true)) {
-                $result[] = $value;
+            if (in_array($value, $result, true)) {
+                continue;
             }
+
+            $result[] = $value;
         }
 
         return $result;
@@ -523,16 +571,21 @@ function unique(): Closure
  * Applies the function $fn to every element and builds a flattened list result.
  *
  * @template T
+ * @template TKey of array-key
  * @template U
- * @param callable(T $elem, int $index): (U[]) $fn
- * @return (Closure(T[]): (U[]))
+ * @param callable(T $elem, TKey $index): (U[]) $fn
+ * @return (Closure(array<TKey, T>): (U[]))
  */
 function flat_map(callable $fn): Closure
 {
-    /** @param T[] $list */
+    /** @param array<TKey, T> $list */
     return function (array $list) use ($fn) {
         $result = [];
 
+        /**
+         * @var T $value
+         * @var TKey $key
+         */
         foreach ($list as $key => $value) {
             foreach ($fn($value, $key) as $inner) {
                 $result[] = $inner;
@@ -617,11 +670,13 @@ function flatten(): Closure
     return function (array $list) {
         $result = [];
 
+        /** @var mixed $elem */
         foreach ($list as $elem) {
             if (is_array($elem)) {
                 /** @var mixed[] */
                 $arr = flatten()(array_values($elem));
 
+                /** @var mixed $nested */
                 foreach ($arr as $nested) {
                     $result[] = $nested;
                 }
@@ -649,6 +704,7 @@ function group_by(callable $fn): Closure
     return function (array $list) use ($fn) {
         $groups = [];
 
+        /** @var TValue $elem */
         foreach ($list as $elem) {
             $key = $fn($elem);
             $groups[$key][] = $elem;

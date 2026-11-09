@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 use function List\append;
 use function List\cons;
@@ -35,17 +37,17 @@ test('map', function () {
 });
 
 test('filter', function () {
-    expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10] |> filter(fn(int $val) => $val % 2 === 0))->toBe([2, 4, 6, 8, 10]);
+    expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10] |> filter(fn(int $val) => ($val % 2) === 0))->toBe([2, 4, 6, 8, 10]);
 });
 
 test('partition', function () {
-    list($even, $odd) = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] |> partition(fn(int $num) => $num % 2 === 0);
+    list($even, $odd) = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] |> partition(fn(int $num) => ($num % 2) === 0);
     expect($even)->toBe([2, 4, 6, 8, 10]);
     expect($odd)->toBe([1, 3, 5, 7, 9]);
 });
 
 test('find', function () {
-    $res = [1, 3, 5, 6, 10] |> find(fn(int $num) => $num % 2 === 0);
+    $res = [1, 3, 5, 6, 10] |> find(fn(int $num) => ($num % 2) === 0);
     expect($res)->toBe(6);
 
     $res = [1, 3, 5, 7] |> find(fn(int $num) => ($num % 2) === 0);
@@ -53,30 +55,46 @@ test('find', function () {
 });
 
 test('find_index', function () {
-    $res = [1, 3, 5, 6, 10] |> find_index(fn(int $num) => $num % 2 === 0);
+    $res = [1, 3, 5, 6, 10] |> find_index(fn(int $num) => ($num % 2) === 0);
     expect($res)->toBe(3);
 
-    $res = [1, 3, 5, 7] |> find_index(fn(int $num) => $num % 2 === 0);
+    $res = [1, 3, 5, 7] |> find_index(fn(int $num) => ($num % 2) === 0);
     expect($res)->toBeNull();
 });
 
 test('for_all', function () {
     $vars = [1, 2, 3, 4];
-    [1, 2, 3, 4] |> for_all(function (int $num, int $index) use ($vars) {
-        expect($num)->toBe($vars[$index]);
-    });
+    [1, 2, 3, 4]
+        |> for_all(function (int $num, int $index) use ($vars) {
+            expect($num)->toBe($vars[$index]);
+        });
 });
 
 test('some', function () {
-    expect([1, 3, 5, 7, 10] |> some(fn(int $num) => $num % 2 === 0))->toBeTrue();
+    expect([1, 3, 5, 7, 10] |> some(fn(int $num) => ($num % 2) === 0))->toBeTrue();
 });
 
 test('every', function () {
-    expect([2, 4, 6, 8, 10] |> every(fn(int $num) => $num % 2 === 0))->toBeTrue();
+    expect([2, 4, 6, 8, 10] |> every(fn(int $num) => ($num % 2) === 0))->toBeTrue();
 });
 
 test('head', function () {
     expect([1, 2] |> head())->toBe(1);
+    expect([false] |> head())->toBeFalse();
+    expect(fn() => [] |> head())->toThrow(InvalidArgumentException::class, 'List is empty');
+});
+
+test('isEmpty keeps its public name and returns a boolean', function () {
+    expect([] |> List\isEmpty())->toBeTrue();
+    expect([false] |> List\isEmpty())->toBeFalse();
+});
+
+test('callbacks receive original string and sparse integer keys', function () {
+    expect(['left' => 1, 'right' => 2] |> map(fn(int $value, string $key) => $key . $value))
+        ->toBe(['left1', 'right2']);
+    expect(['left' => 1, 'right' => 2] |> filter(fn(int $_value, string $key) => $key === 'right'))
+        ->toBe([2]);
+    expect([3 => 1, 8 => 2] |> map(fn(int $value, int $key) => $value + $key))->toBe([4, 10]);
 });
 
 test('tail', function () {
@@ -131,7 +149,7 @@ test('take', function () {
 });
 
 test('take_while', function () {
-    expect([2, 4, 6, 7, 10] |> take_while(fn(int $num) => $num % 2 === 0))->toBe([2, 4, 6]);
+    expect([2, 4, 6, 7, 10] |> take_while(fn(int $num) => ($num % 2) === 0))->toBe([2, 4, 6]);
 });
 
 test('drop', function () {
@@ -139,7 +157,7 @@ test('drop', function () {
 });
 
 test('drop_while', function () {
-    expect([2, 4, 6, 7, 10] |> drop_while(fn(int $num) => $num % 2 === 0))->toBe([7, 10]);
+    expect([2, 4, 6, 7, 10] |> drop_while(fn(int $num) => ($num % 2) === 0))->toBe([7, 10]);
 });
 
 test('slice', function () {
@@ -154,15 +172,19 @@ test('sort', function () {
 
 test('unique', function () {
     expect([1, 1, 2, 2, 3] |> unique())->toBe([1, 2, 3]);
+    expect([false, 0, false, 0] |> unique())->toBe([false, 0]);
+    expect([] |> unique())->toBe([]);
 });
 
 test('sort_unique', function () {
     $lst = [100, 1, 1, 0];
     expect([100, 1, 1, 0] |> sort_unique(fn(int $a, int $b) => $a <=> $b))->toBe([0, 1, 100]);
+    expect([] |> sort_unique(fn(int $a, int $b) => $a <=> $b))->toBe([]);
+    expect([false, false, true] |> sort_unique(fn(bool $a, bool $b) => $a <=> $b))->toBe([false, true]);
 });
 
 test('group_by', function () {
-    $result = [1, 2, 3, 4, 5] |> group_by(fn(int $num) => $num % 2 === 0 ? 'even' : 'odd');
+    $result = [1, 2, 3, 4, 5] |> group_by(fn(int $num) => ($num % 2) === 0 ? 'even' : 'odd');
     expect($result['even'])->toBe([2, 4]);
     expect($result['odd'])->toBe([1, 3, 5]);
 });
@@ -182,16 +204,21 @@ test('pipeline from readme', function () {
         ['id' => 6, 'user' => 'Alice', 'amount' => 50, 'cat' => 'Tech'],
     ];
 
+    /** @var list<string> $uniqueUsers */
     $uniqueUsers = $transactions
-        |> filter(fn(array $t) => $t['cat'] === 'Tech')
-        |> filter(fn(array $t) => $t['amount'] > 500)
+        |> filter(
+            /** @param array{id: int, user: string, amount: int, cat: string} $t */
+            fn(array $t) => $t['cat'] === 'Tech',
+        )
+        |> filter(
+            /** @param array{id: int, user: string, amount: int, cat: string} $t */
+            fn(array $t) => $t['amount'] > 500,
+        )
         |> map(fn(array $t) => $t['user'])
         |> unique();
 
-    /** @var list<string> $uniqueUsers */
-    $topTechUsers = $uniqueUsers
-        |> sort_list(fn(string $a, string $b) => strcmp($a, $b))
-        |> take(2);
+    /** @var list<string> $topTechUsers */
+    $topTechUsers = $uniqueUsers |> sort_list(fn(string $a, string $b) => strcmp($a, $b)) |> take(2);
 
     expect($topTechUsers)->toBe(['Alice', 'Bob']);
 });
