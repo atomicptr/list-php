@@ -14,7 +14,7 @@ use InvalidArgumentException;
  * @template T
  * @template U
  * @param callable(T $elem, int $index): U $fn
- * @return (Closure(T[]): U[])
+ * @return (Closure(T[]): (U[]))
  */
 function map(callable $fn): Closure
 {
@@ -34,7 +34,7 @@ function map(callable $fn): Closure
  *
  * @template T
  * @param callable(T $elem, int $index): bool $fn
- * @return (Closure(T[]): T[])
+ * @return (Closure(T[]): (T[]))
  */
 function filter(callable $fn): Closure
 {
@@ -363,7 +363,7 @@ function last(): Closure
  *
  * @template T
  * @param callable(T $elem1, T $elem2): int $fn
- * @return (Closure(T[]): T[])
+ * @return (Closure(T[]): (T[]))
  */
 function sort_list(callable $fn): Closure
 {
@@ -383,7 +383,7 @@ function sort_list(callable $fn): Closure
  *
  * @template T
  * @param callable(T $elem1, T $elem2): int $fn
- * @return (Closure(T[]): T[])
+ * @return (Closure(T[]): (T[]))
  */
 function sort_unique(callable $fn): Closure
 {
@@ -428,7 +428,7 @@ function take(int $num): Closure
  *
  * @template T
  * @param callable(T $elem, int $index): bool $fn
- * @return (Closure(T[]): T[])
+ * @return (Closure(T[]): (T[]))
  */
 function take_while(callable $fn): Closure
 {
@@ -504,7 +504,7 @@ function unique(): Closure
 {
     /**
      * @param T[] $list
-     * @return (Closure(T[]): T[])
+     * @return (Closure(T[]): (T[]))
      */
     return function (array $list) {
         $result = [];
@@ -524,8 +524,8 @@ function unique(): Closure
  *
  * @template T
  * @template U
- * @param callable(T $elem, int $index): U[] $fn
- * @return (Closure(T[]): U[])
+ * @param callable(T $elem, int $index): (U[]) $fn
+ * @return (Closure(T[]): (U[]))
  */
 function flat_map(callable $fn): Closure
 {
