@@ -642,7 +642,7 @@ function flatten(): Closure
  * @template TKey of array-key
  * @template TValue
  * @param callable(TValue): TKey $fn
- * @return (Closure(TValue[]): array<TKey, TValue[]>)
+ * @return (Closure(TValue[]): array<TKey, list<TValue>>)
  */
 function group_by(callable $fn): Closure
 {
